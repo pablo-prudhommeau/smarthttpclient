@@ -1,0 +1,30 @@
+image: docker:stable
+
+cache:
+  paths:
+    - .m2/repository
+
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+
+services:
+  - docker:dind
+
+stages:
+  - build
+
+build:
+  image: maven:3.6.1-jdk-11
+  stage: build
+  artifacts:
+    paths:
+      - target/smarthttpclient-*.jar
+  script:
+    - mvn -s settings.xml -B package
+    - mvn -s settings.xml -B deploy
+  only:
+    - develop
+    - tags
