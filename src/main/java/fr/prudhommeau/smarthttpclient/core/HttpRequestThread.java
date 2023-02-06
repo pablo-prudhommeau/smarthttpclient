@@ -68,6 +68,7 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
     private boolean ignoreErrors;
     private StandardProtocolFamily forcedProtocolFamily;
     private String forcedRemoteAddress;
+    private boolean enableRedirects = true;
 
     public HttpRequestThread() {
         setName("HttpRequestThread-" + uuid);
@@ -349,6 +350,7 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
         httpRequestThread.setIgnoreErrors(ignoreErrors);
         httpRequestThread.setForcedProtocolFamily(forcedProtocolFamily);
         httpRequestThread.setForcedRemoteAddress(forcedRemoteAddress);
+        httpRequestThread.setEnableRedirects(enableRedirects);
         httpClientManager.launchHttpRequestThread(httpRequestThread);
 
         httpClientManager.getSmartThreadPool().interruptSmartThread(this);
@@ -554,6 +556,14 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
         this.forcedRemoteAddress = forcedRemoteAddress;
     }
 
+    public boolean isEnableRedirects() {
+        return enableRedirects;
+    }
+
+    public void setEnableRedirects(boolean enableRedirects) {
+        this.enableRedirects = enableRedirects;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
@@ -568,6 +578,7 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
                 .append("proxifiable", proxifiable)
                 .append("forcedProtocolFamily", forcedProtocolFamily)
                 .append("forcedRemoteAddress", forcedRemoteAddress)
+                .append("enableRedirects", enableRedirects)
                 .toString();
     }
 
