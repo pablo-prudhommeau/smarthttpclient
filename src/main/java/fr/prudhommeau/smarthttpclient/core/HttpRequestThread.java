@@ -74,35 +74,51 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
     }
 
     public interface OnHttpThreadResponseListener<T> {
+
         void onHttpThreadResponse(HttpRequestThread requestThreadInstance, String response, Map<String, Object> metadata, T requestId);
+
     }
 
     public interface OnHttpThreadDetailedResponseListener<T> {
+
         void onHttpThreadResponse(HttpRequestThread requestThreadInstance, String response, Map<String, Object> metadata, T requestId);
+
     }
 
     public interface OnHttpThreadRawResponseListener<T> {
+
         void onHttpThreadResponse(HttpRequestThread requestThreadInstance, byte[] response, Map<String, Object> metadata, T requestId);
+
     }
 
     public interface OnHttpThreadErrorListener<T> {
+
         void onHttpThreadError(Exception exception, HttpRequestThread requestThreadInstance, Map<String, Object> metadata, T requestId);
+
     }
 
     public interface OnStepHttpThreadResponseListener<T> {
+
         void apply(HttpRequestThread requestThreadInstance, String response, Map<String, Object> metadata);
+
     }
 
     public interface OnStepHttpThreadDetailedResponseListener<T> {
+
         void apply(HttpRequestThread requestThreadInstance, String response, Map<String, Object> metadata);
+
     }
 
     public interface OnStepHttpThreadRawResponseListener<T> {
+
         void apply(HttpRequestThread requestThreadInstance, byte[] response, Map<String, Object> metadata);
+
     }
 
     public interface OnStepHttpThreadErrorListener<T> {
+
         void apply(Exception exception, HttpRequestThread requestThreadInstance, Map<String, Object> metadata);
+
     }
 
     public static class RetryHistory {
@@ -138,7 +154,7 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
                 .setConnectTimeout(httpClientManager.getRequestTimeoutInMilliseconds())
                 .setConnectionRequestTimeout(httpClientManager.getRequestTimeoutInMilliseconds())
                 .setSocketTimeout(httpClientManager.getRequestTimeoutInMilliseconds())
-                .setMaxRedirects(HttpClientManager.MAXIMUM_NUMBER_OF_REDIRECTS)
+                .setRedirectsEnabled(enableRedirects)
                 .build();
 
         SocketConfig socketConfig = SocketConfig.custom()
@@ -252,9 +268,11 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
                 httpClientManager.getStepHttpThreadDetailedResponseListenerMap().get(requestId).apply(this, responseAsString, metadata);
             }
             for (OnHttpThreadRawResponseListener onHttpThreadRawResponseListener : httpClientManager.getHttpThreadRawResponseListenerList()) {
+                responseHeaders.addAll(Arrays.asList(response.getAllHeaders()));
                 onHttpThreadRawResponseListener.onHttpThreadResponse(this, responseAsByteArray, metadata, requestId);
             }
             if (httpClientManager.getStepHttpThreadRawResponseListenerMap().containsKey(requestId)) {
+                responseHeaders.addAll(Arrays.asList(response.getAllHeaders()));
                 httpClientManager.getStepHttpThreadRawResponseListenerMap().get(requestId).apply(this, responseAsByteArray, metadata);
             }
         } catch (TruncatedChunkException | SocketException | SSLException | ConnectTimeoutException | NoHttpResponseException | ConnectionClosedException | ClientProtocolException | SocketTimeoutException | ZipException | EOFException e) {
