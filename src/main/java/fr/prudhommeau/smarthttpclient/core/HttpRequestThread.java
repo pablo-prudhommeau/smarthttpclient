@@ -277,10 +277,14 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
                 httpClientManager.getStepHttpThreadRawResponseListenerMap().get(requestId).apply(this, responseAsByteArray, metadata);
             }
         } catch (TruncatedChunkException | SocketException | SSLException | ConnectTimeoutException | NoHttpResponseException | ConnectionClosedException | ClientProtocolException | SocketTimeoutException | ZipException | EOFException e) {
+            logger.trace("A retryable exception has occurred, executing retry strategy - exceptionClass [" + e.getClass() + "], exceptionMessage [" + e.getMessage() + "], httpRequestThread [" + this + "]");
             executeHttpRequestThreadRetryStrategy(e);
-            logger.debug("An exception occurred : " + e.getClass() + " - " + e.getMessage() + " - " + this);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            if (ignoreErrors) {
+                logger.trace("An unexpected exception has occurred but it will fail silently because ignoring error is activated - exceptionClass [" + e.getClass() + "], exceptionMessage [" + e.getMessage() + "], httpRequestThread [" + this + "]");
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -295,9 +299,14 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
             retryHistoryList.add(retryHistory);
 
             if (numberOfRetries >= HttpClientManager.NUMBER_OF_RETRIES_WARNING_THRESHOLD) {
-                logger.warn("Thread [" + this + "] has been retried more than [" + HttpClientManager.NUMBER_OF_RETRIES_WARNING_THRESHOLD + "]... Retry a last time without proxy...");
-                proxy = null;
-                randomProxied = false;
+                if (proxy != null) {
+                    logger.debug("Thread has been retried more than [" + HttpClientManager.NUMBER_OF_RETRIES_WARNING_THRESHOLD + "], retrying a last time without proxy - httpRequestThread [" + this + "]");
+                    proxy = null;
+                } else if (randomProxied) {
+                    logger.debug("Thread has been retried more than [" + HttpClientManager.NUMBER_OF_RETRIES_WARNING_THRESHOLD + "], retrying a last time without random proxy - httpRequestThread [" + this + "]");
+                } else {
+                    logger.debug("Thread has been retried more than [" + HttpClientManager.NUMBER_OF_RETRIES_WARNING_THRESHOLD + "], retrying a last time - httpRequestThread [" + this + "]");
+                }
                 retryWhenConnectionFail = false;
             }
 
@@ -353,7 +362,9 @@ public class HttpRequestThread<T> extends SmartThread implements SmartThread.OnT
         httpRequestThread.setEnableRedirects(enableRedirects);
         httpClientManager.launchHttpRequestThread(httpRequestThread);
 
-        httpClientManager.getSmartThreadPool().interruptSmartThread(this);
+        if (!httpClientManager.getSmartThreadPool().isInterrupted()) {
+            httpClientManager.getSmartThreadPool().interruptSmartThread(this);
+        }
     }
 
     public void addMetadata(String key, Object value) {
